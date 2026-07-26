@@ -132,7 +132,30 @@ function requireParsedRows<R extends { ts: number }>(
         `with unparseable "${timeColumn}" or "${valueColumn}" values.`
     );
   }
+  logDatasetSummary(url, valid);
   return valid;
+}
+
+/**
+ * One-line load summary per dataset (row count + time span) — the first
+ * thing to check when widgets come up empty: does the span overlap the
+ * selected date range at all?
+ */
+function logDatasetSummary(url: string, rows: { ts: number }[]): void {
+  if (rows.length === 0) {
+    console.info(`[CsvAdapter] Loaded 0 rows from ${url}`);
+    return;
+  }
+  let min = Infinity;
+  let max = -Infinity;
+  for (const r of rows) {
+    if (r.ts < min) min = r.ts;
+    if (r.ts > max) max = r.ts;
+  }
+  console.info(
+    `[CsvAdapter] Loaded ${rows.length} rows from ${url}, spanning ` +
+      `${new Date(min).toISOString()} .. ${new Date(max).toISOString()} (UTC)`
+  );
 }
 
 export class CsvAdapter implements DataSourceAdapter {
@@ -258,6 +281,22 @@ export class CsvAdapter implements DataSourceAdapter {
       const cost = costSums.get(costKey);
       if (cost === undefined) continue;
       ratios.set(key, cost / tx);
+    }
+
+    // Empty unit economics is almost always a data alignment problem between
+    // the two CSVs — say which side failed so it's diagnosable from the
+    // console instead of a blank widget.
+    if (ratios.size === 0) {
+      const reason =
+        txSums.size === 0
+          ? "no transaction rows match the current filters/date range (check that Service_Name values " +
+            "match application_service in the cost CSV — Team drill-down filters depend on that — " +
+            "that Environment values match, and that timestamps fall inside the selected date range)"
+          : costSums.size === 0
+            ? "no cost rows match the current filters/date range"
+            : "cost and transaction rows never share a group — check that Service_Name / Environment " +
+              "values are spelled identically (case-sensitive) in both CSVs";
+      console.warn(`[CsvAdapter] costPerTransaction returned no rows: ${reason}.`);
     }
     return buildResult(q, ratios, q.groupBy, /* precision */ 6);
   }
