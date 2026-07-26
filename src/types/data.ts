@@ -8,8 +8,8 @@
  * normalized `DataResult` shape below.
  */
 
-/** Dimension columns that queries may group or filter by. */
-export const DIMENSION_FIELDS = [
+/** Dimension columns of the cost export. */
+export const COST_DIMENSION_FIELDS = [
   "Provider",
   "service_name",
   "application_service",
@@ -18,13 +18,43 @@ export const DIMENSION_FIELDS = [
   "Account_ID",
 ] as const;
 
-export type DimensionField = (typeof DIMENSION_FIELDS)[number];
+export type CostDimensionField = (typeof COST_DIMENSION_FIELDS)[number];
 
-/** A single parsed row of the raw export, with Cost/Date pre-parsed. */
-export type CostRow = Record<DimensionField, string> & {
+/**
+ * Dimension columns of the business unit metrics export (after the adapter
+ * maps Service_Name -> application_service and enriches rows with the
+ * owning Team, looked up from the cost data, so drill-down filters apply to
+ * both datasets).
+ */
+export const TRANSACTION_DIMENSION_FIELDS = [
+  "application_service",
+  "Environment",
+  "Team",
+  "identified_transaction",
+] as const;
+
+export type TransactionDimensionField = (typeof TRANSACTION_DIMENSION_FIELDS)[number];
+
+/** Any dimension a query may group or filter by. */
+export type DimensionField = CostDimensionField | TransactionDimensionField;
+
+/** A single parsed row of the raw cost export, with Cost/Date pre-parsed. */
+export type CostRow = Record<CostDimensionField, string> & {
   /** Cost in dollars for one hour. */
   cost: number;
   /** Timestamp (epoch ms, UTC) of the hour the cost applies to. */
+  ts: number;
+};
+
+/**
+ * A single parsed row of the business unit metrics export
+ * (Time_Stamp / Environment / Service_Name / identified_transaction /
+ * Successful_Transactions), normalized to the shared dimension names.
+ */
+export type TransactionRow = Record<TransactionDimensionField, string> & {
+  /** Successful transactions counted in one hour. */
+  transactions: number;
+  /** Timestamp (epoch ms, UTC) of the hour. */
   ts: number;
 };
 

@@ -1,19 +1,23 @@
 /**
- * Dummy cost data generator.
+ * Dummy data generator. Writes two timeline-aligned CSVs (past 14 days,
+ * hourly, generated relative to "now" — re-run via `npm run generate:data`
+ * whenever the committed files get stale):
  *
- * Writes public/data/costs.csv — 14 days of hourly cost rows shaped like our
- * raw multi-cloud cost export (NOT FOCUS-normalized; that happens in the real
- * pipeline later). Columns:
+ * 1. public/data/costs.csv — raw multi-cloud cost export (NOT
+ *    FOCUS-normalized; that happens in the real pipeline later):
  *
- *   Provider, service_name, application_service, Cost, Environment, Team,
- *   Date, Account_ID
+ *      Provider, service_name, application_service, Cost, Environment, Team,
+ *      Date, Account_ID
  *
- * The data is generated relative to "now", so re-run this script
- * (`npm run generate:data`) whenever the committed CSV gets stale.
+ * 2. public/data/business_metrics.csv — business unit metrics per
+ *    microservice, correlatable with cost rows on
+ *    (Service_Name = application_service, Environment, hour):
+ *
+ *      Time_Stamp, Environment, Service_Name, identified_transaction,
+ *      Successful_Transactions
  *
  * Row volume is kept sane for client-side parsing by NOT cross-joining every
- * dimension: each (team, application_service, provider, service_name,
- * environment) combination is an explicit "cost stream" below, and non-prod
+ * dimension: each combination is an explicit "stream" below, and non-prod
  * streams only emit rows during weekday working hours.
  */
 
@@ -21,7 +25,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const OUT_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "data", "costs.csv");
+const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "data");
+const COSTS_PATH = join(DATA_DIR, "costs.csv");
+const METRICS_PATH = join(DATA_DIR, "business_metrics.csv");
 
 const DAYS = 14;
 const HOUR_MS = 3_600_000;
@@ -114,6 +120,25 @@ const DIURNAL_SERVICES = new Set([
 /** Per-team day-over-day growth, so the demo has a story to drill into. */
 const TEAM_DAILY_TREND = { payments: 0.008, search: 0.0, platform: -0.004, growth: 0.025 };
 
+/**
+ * Business unit metric per microservice (different services have different
+ * identified transactions). `base` is average successful transactions per
+ * hour in prod; `envs` scales volume for each environment the service emits
+ * metrics in. Transaction volume trends slightly slower than the team's cost
+ * trend, so cost-per-transaction drifts — that's the insight to demo.
+ */
+const TRANSACTION_STREAMS = [
+  { team: "payments", app: "checkout-api", metric: "Order processed", base: 900, envs: { prod: 1, staging: 0.05 } },
+  { team: "payments", app: "billing-worker", metric: "Invoice generated", base: 220, envs: { prod: 1 } },
+  { team: "payments", app: "fraud-scoring", metric: "Fraud check completed", base: 850, envs: { prod: 1, staging: 0.05 } },
+  { team: "search", app: "search-api", metric: "Search completed", base: 4200, envs: { prod: 1, staging: 0.04 } },
+  { team: "search", app: "indexer", metric: "Document indexed", base: 1500, envs: { prod: 1, dev2: 0.03 } },
+  { team: "platform", app: "api-gateway", metric: "Partner API call served", base: 11000, envs: { prod: 1, staging: 0.05 } },
+  { team: "platform", app: "auth-service", metric: "Login completed", base: 700, envs: { prod: 1, staging: 0.05, dev1: 0.02 } },
+  { team: "growth", app: "recommendations", metric: "Recommendation served", base: 2600, envs: { prod: 1, dev1: 0.03 } },
+  { team: "growth", app: "email-service", metric: "Email delivered", base: 640, envs: { prod: 1 } },
+];
+
 function accountId(stream) {
   switch (stream.provider) {
     case "AWS":
@@ -127,11 +152,11 @@ function accountId(stream) {
   }
 }
 
-function main() {
-  const rng = mulberry32(42);
-  const endMs = Math.floor(Date.now() / HOUR_MS) * HOUR_MS; // start of current hour, exclusive
-  const startMs = endMs - DAYS * 24 * HOUR_MS;
+function isoHour(ts) {
+  return new Date(ts).toISOString().replace(".000Z", "Z");
+}
 
+function writeCosts(rng, startMs, endMs) {
   const lines = ["Provider,service_name,application_service,Cost,Environment,Team,Date,Account_ID"];
   const teamTotals = {};
 
@@ -157,30 +182,56 @@ function main() {
       const cost = (stream.base * factor).toFixed(4);
       teamTotals[stream.team] = (teamTotals[stream.team] ?? 0) + Number(cost);
       lines.push(
-        [
-          stream.provider,
-          stream.service,
-          stream.app,
-          cost,
-          stream.env,
-          stream.team,
-          new Date(ts).toISOString().replace(".000Z", "Z"),
-          account,
-        ].join(",")
+        [stream.provider, stream.service, stream.app, cost, stream.env, stream.team, isoHour(ts), account].join(",")
       );
     }
   }
 
-  mkdirSync(dirname(OUT_PATH), { recursive: true });
-  writeFileSync(OUT_PATH, lines.join("\n") + "\n");
-
+  writeFileSync(COSTS_PATH, lines.join("\n") + "\n");
+  console.log(`Wrote ${lines.length - 1} cost rows to ${COSTS_PATH}`);
   const total = Object.values(teamTotals).reduce((a, b) => a + b, 0);
-  console.log(`Wrote ${lines.length - 1} rows to ${OUT_PATH}`);
-  console.log(`Range: ${new Date(startMs).toISOString()} .. ${new Date(endMs).toISOString()} (exclusive)`);
   console.log(`14-day total: $${total.toFixed(2)}`);
   for (const [team, t] of Object.entries(teamTotals).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${team.padEnd(10)} $${t.toFixed(2)}`);
   }
+}
+
+function writeBusinessMetrics(rng, startMs, endMs) {
+  const lines = ["Time_Stamp,Environment,Service_Name,identified_transaction,Successful_Transactions"];
+
+  for (const stream of TRANSACTION_STREAMS) {
+    for (const [env, scale] of Object.entries(stream.envs)) {
+      for (let ts = startMs; ts < endMs; ts += HOUR_MS) {
+        const d = new Date(ts);
+        const hour = d.getUTCHours();
+        const weekday = d.getUTCDay() >= 1 && d.getUTCDay() <= 5;
+        if (env !== "prod" && (!weekday || hour < 7 || hour >= 19)) continue;
+
+        const dayIndex = Math.floor((ts - startMs) / (24 * HOUR_MS));
+        // Volume grows slower than the team's cost trend -> unit cost drifts.
+        let factor = 1 + TEAM_DAILY_TREND[stream.team] * 0.6 * dayIndex;
+        factor *= 0.8 + 0.45 * Math.max(0, Math.sin(((hour - 7) / 12) * Math.PI));
+        if (!weekday) factor *= 0.75;
+        factor *= 0.9 + rng() * 0.2;
+
+        const tx = Math.max(0, Math.round(stream.base * scale * factor));
+        lines.push([isoHour(ts), env, stream.app, stream.metric, tx].join(","));
+      }
+    }
+  }
+
+  writeFileSync(METRICS_PATH, lines.join("\n") + "\n");
+  console.log(`Wrote ${lines.length - 1} business metric rows to ${METRICS_PATH}`);
+}
+
+function main() {
+  const endMs = Math.floor(Date.now() / HOUR_MS) * HOUR_MS; // start of current hour, exclusive
+  const startMs = endMs - DAYS * 24 * HOUR_MS;
+  mkdirSync(DATA_DIR, { recursive: true });
+
+  console.log(`Range: ${new Date(startMs).toISOString()} .. ${new Date(endMs).toISOString()} (exclusive)`);
+  writeCosts(mulberry32(42), startMs, endMs);
+  writeBusinessMetrics(mulberry32(1337), startMs, endMs);
 }
 
 main();

@@ -91,6 +91,14 @@ export interface WidgetConfig {
 
 export interface WidgetOptions {
   /**
+   * How to display the metric value: "currency" (default, whole dollars),
+   * "unitCurrency" (sub-cent precision, for cost-per-transaction), or
+   * "count" (plain numbers, for transaction volumes).
+   */
+  format?: "currency" | "unitCurrency" | "count";
+  /** Label for the value column/series (tables, tooltips). Default "Cost". */
+  valueLabel?: string;
+  /**
    * bigNumber: render a budget progress bar against this static dollar
    * target (real budget objects come with the actual pipeline).
    */

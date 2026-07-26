@@ -46,7 +46,7 @@ export function WidgetRenderer({ widget }: { widget: WidgetConfig }) {
                 />
               );
             case "table":
-              return <TableWidget data={data} />;
+              return <TableWidget data={data} options={widget.options} />;
           }
         })()}
     </WidgetFrame>

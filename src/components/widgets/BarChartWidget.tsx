@@ -2,7 +2,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import type { DataResult } from "../../types/data";
 import type { WidgetOptions } from "../../config/schema";
 import { chartChrome, themeColor } from "../../theme/colors";
-import { formatCurrencyCompact, formatCurrencyPrecise } from "../../utils/format";
+import { formatValue, formatValueCompact } from "../../utils/format";
 import { EmptyState } from "../WidgetFrame";
 
 /**
@@ -23,6 +23,8 @@ export function BarChartWidget({
 
   const categoryKey = data.columns.find((c) => c.type === "string")?.name ?? "value";
   const color = themeColor(options?.color === "secondary" ? "secondary" : "primary");
+  const format = options?.format ?? "currency";
+  const valueLabel = options?.valueLabel ?? "Cost";
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -36,7 +38,7 @@ export function BarChartWidget({
           interval={0}
         />
         <YAxis
-          tickFormatter={(v: number) => formatCurrencyCompact(v)}
+          tickFormatter={(v: number) => formatValueCompact(v, format)}
           tick={{ fill: chartChrome.axisText, fontSize: 12 }}
           axisLine={false}
           tickLine={false}
@@ -44,7 +46,7 @@ export function BarChartWidget({
         />
         <Tooltip
           cursor={{ fill: chartChrome.gridLine, opacity: 0.4 }}
-          formatter={(v) => [formatCurrencyPrecise(Number(v)), "Cost"]}
+          formatter={(v) => [formatValue(Number(v), format), valueLabel]}
           contentStyle={{
             borderRadius: 8,
             borderColor: chartChrome.gridLine,

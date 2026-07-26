@@ -55,12 +55,27 @@ Key properties:
 
 ## Data
 
-`public/data/costs.csv` mirrors the raw export (hourly granularity — widgets
-sum hours into calendar days where needed):
+`public/data/costs.csv` mirrors the raw cost export (hourly granularity —
+widgets sum hours into calendar days where needed):
 
 ```
 Provider, service_name, application_service, Cost, Environment, Team, Date, Account_ID
 ```
+
+`public/data/business_metrics.csv` holds business unit metrics per
+microservice, hourly, timeline-aligned with the cost data (`Time_Stamp` or
+`Timestamp` accepted for the first column):
+
+```
+Time_Stamp, Environment, Service_Name, identified_transaction, Successful_Transactions
+```
+
+`Service_Name` must match `application_service` values in the cost export
+(and `Environment` values must match too) — that's the join key for unit
+economics. Three metrics are supported in widget queries: `sum(Cost)`,
+`sum(Successful_Transactions)`, and `costPerTransaction`
+(spend ÷ successful transactions, joined per service/environment/day).
+To use your own files, replace them under `public/data/` and reload the page.
 
 Notes / prototype limitations:
 

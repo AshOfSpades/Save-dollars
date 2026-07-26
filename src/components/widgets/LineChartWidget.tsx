@@ -10,7 +10,7 @@ import {
 import type { DataResult } from "../../types/data";
 import type { WidgetOptions } from "../../config/schema";
 import { chartChrome, themeColor } from "../../theme/colors";
-import { formatCurrencyCompact, formatCurrencyPrecise, formatDay } from "../../utils/format";
+import { formatDay, formatValue, formatValueCompact } from "../../utils/format";
 import { EmptyState } from "../WidgetFrame";
 
 /**
@@ -29,6 +29,8 @@ export function LineChartWidget({
   if (data.rows.length === 0) return <EmptyState />;
 
   const color = themeColor(options?.color === "secondary" ? "secondary" : "primary");
+  const format = options?.format ?? "currency";
+  const valueLabel = options?.valueLabel ?? "Cost";
   const gradientId = `line-fill-${widgetId}`;
 
   return (
@@ -50,7 +52,7 @@ export function LineChartWidget({
           minTickGap={24}
         />
         <YAxis
-          tickFormatter={(v: number) => formatCurrencyCompact(v)}
+          tickFormatter={(v: number) => formatValueCompact(v, format)}
           tick={{ fill: chartChrome.axisText, fontSize: 12 }}
           axisLine={false}
           tickLine={false}
@@ -58,7 +60,7 @@ export function LineChartWidget({
         />
         <Tooltip
           labelFormatter={(d) => formatDay(String(d))}
-          formatter={(v) => [formatCurrencyPrecise(Number(v)), "Cost"]}
+          formatter={(v) => [formatValue(Number(v), format), valueLabel]}
           contentStyle={{
             borderRadius: 8,
             borderColor: chartChrome.gridLine,

@@ -4,8 +4,10 @@
  *
  * Progressive disclosure layout:
  * - depth 0 (landing): month-to-date spend + daily trend + by-Team bar
- * - depth 1 (a team):  MTD vs budget + daily trend + by-application_service bar
- * - depth 2 (a service): MTD vs budget + daily trend
+ * - depth 1 (a team):  MTD vs budget + daily trend + by-application_service
+ *   bar + unit economics table (cost per successful transaction per service)
+ * - depth 2 (a service): MTD vs budget + daily trend + cost per transaction
+ *   (big number + daily trend) + daily transaction volume
  * - any depth, technical toggle on: service_name table + Provider bar
  */
 
@@ -135,6 +137,77 @@ export const sampleDashboard: DashboardConfig = {
           filters: [{ field: "Environment", value: "{{environment}}" }],
         },
       },
+    },
+    {
+      id: "unit-economics-by-service",
+      type: "table",
+      title: "Unit economics",
+      subtitle: "Cost per successful transaction, by service",
+      audience: "all",
+      layout: { x: 0, y: 6, w: 12, h: 3 },
+      visibleWhen: { minDepth: 1, maxDepth: 1 },
+      dataSource: {
+        query: {
+          metric: "costPerTransaction",
+          groupBy: ["application_service", "identified_transaction"],
+          dateRange: "{{dateRange}}",
+          filters: [{ field: "Environment", value: "{{environment}}" }],
+        },
+      },
+      options: { format: "unitCurrency", valueLabel: "Cost / transaction" },
+    },
+    {
+      id: "cost-per-transaction",
+      type: "bigNumber",
+      title: "Cost per transaction",
+      subtitle: "Spend ÷ successful transactions",
+      audience: "all",
+      layout: { x: 0, y: 3, w: 4, h: 3 },
+      visibleWhen: { minDepth: 2 },
+      dataSource: {
+        query: {
+          metric: "costPerTransaction",
+          groupBy: ["identified_transaction"],
+          dateRange: "{{dateRange}}",
+          filters: [{ field: "Environment", value: "{{environment}}" }],
+        },
+      },
+      options: { format: "unitCurrency", trendWindowDays: 7 },
+    },
+    {
+      id: "cost-per-transaction-daily",
+      type: "lineChart",
+      title: "Cost per transaction — daily",
+      audience: "all",
+      layout: { x: 4, y: 3, w: 8, h: 3 },
+      visibleWhen: { minDepth: 2 },
+      dataSource: {
+        query: {
+          metric: "costPerTransaction",
+          granularity: "day",
+          dateRange: "{{dateRange}}",
+          filters: [{ field: "Environment", value: "{{environment}}" }],
+        },
+      },
+      options: { format: "unitCurrency", valueLabel: "Cost / transaction" },
+    },
+    {
+      id: "transactions-daily",
+      type: "lineChart",
+      title: "Successful transactions — daily",
+      subtitle: "Business unit metric volume",
+      audience: "all",
+      layout: { x: 0, y: 6, w: 12, h: 3 },
+      visibleWhen: { minDepth: 2 },
+      dataSource: {
+        query: {
+          metric: "sum(Successful_Transactions)",
+          granularity: "day",
+          dateRange: "{{dateRange}}",
+          filters: [{ field: "Environment", value: "{{environment}}" }],
+        },
+      },
+      options: { format: "count", valueLabel: "Transactions", color: "secondary" },
     },
     {
       id: "spend-by-service-name",

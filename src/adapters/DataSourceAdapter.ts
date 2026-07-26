@@ -50,8 +50,20 @@ export type DateRangeSpec =
  */
 export interface WidgetQuery {
   /**
-   * Aggregation to compute. Only "sum(Cost)" is meaningful for the cost
-   * export today; typed as string so configs stay forward-compatible.
+   * Aggregation to compute. Supported today:
+   *
+   * - "sum(Cost)"                    — dollars from the cost export
+   * - "sum(Successful_Transactions)" — volume from the business metrics
+   *   export (groupBy/filters limited to application_service, Environment,
+   *   Team, identified_transaction)
+   * - "costPerTransaction"           — sum(Cost) / sum(Successful_Transactions),
+   *   the two datasets joined per group on their shared dimensions
+   *   (application_service, Environment, Team) and, for daily granularity,
+   *   per calendar day. Filters must use shared dimensions (or
+   *   identified_transaction, which applies to the transaction side only)
+   *   so both sides of the ratio see the same slice.
+   *
+   * Typed as string so configs stay forward-compatible.
    */
   metric: string;
   /** Dimensions to group by. Omit for a single grand-total row. */

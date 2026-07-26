@@ -1,10 +1,14 @@
 import type { DataResult } from "../../types/data";
-import { formatCurrencyPrecise } from "../../utils/format";
+import type { WidgetOptions } from "../../config/schema";
+import { formatValue } from "../../utils/format";
 import { EmptyState } from "../WidgetFrame";
 
-/** Generic tabular view of a query result (adapter sorts by cost desc). */
-export function TableWidget({ data }: { data: DataResult }) {
+/** Generic tabular view of a query result (adapter sorts by value desc). */
+export function TableWidget({ data, options }: { data: DataResult; options?: WidgetOptions }) {
   if (data.rows.length === 0) return <EmptyState />;
+
+  const format = options?.format ?? "currency";
+  const valueLabel = options?.valueLabel ?? "Cost";
 
   return (
     <div className="h-full overflow-auto">
@@ -16,7 +20,7 @@ export function TableWidget({ data }: { data: DataResult }) {
                 key={col.name}
                 className={`py-2 pr-3 font-medium ${col.type === "number" ? "text-right" : ""}`}
               >
-                {col.name === "value" ? "Cost" : col.name}
+                {col.name === "value" ? valueLabel : col.name}
               </th>
             ))}
           </tr>
@@ -34,7 +38,7 @@ export function TableWidget({ data }: { data: DataResult }) {
                   }`}
                 >
                   {col.type === "number"
-                    ? formatCurrencyPrecise(Number(row[col.name]))
+                    ? formatValue(Number(row[col.name]), format)
                     : String(row[col.name])}
                 </td>
               ))}
