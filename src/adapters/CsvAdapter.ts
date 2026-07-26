@@ -66,12 +66,31 @@ async function fetchCsv(url: string): Promise<RawCsvRow[]> {
 }
 
 /**
- * Parse a timestamp cell. Zone-less ISO-ish values ("2026-07-26 14:00:00")
- * are treated as UTC so day bucketing doesn't depend on the viewer's
- * browser timezone. Returns NaN for unparseable input.
+ * Parse a timestamp cell. Accepted formats, all treated as UTC so day
+ * bucketing doesn't depend on the viewer's browser timezone:
+ *
+ * - ISO 8601 ("2026-07-26T14:00:00Z"), with or without a zone suffix
+ * - zone-less ISO-ish ("2026-07-26 14:00:00")
+ * - the raw export's day-first form "DD/MM/YY HH:MM" ("27/07/26 23:00"),
+ *   also with 4-digit years and optional seconds. NOTE: slash dates are
+ *   always read day-first (27/07 = 27 July), never US month-first.
+ *
+ * Returns NaN for unparseable input.
  */
 function parseTimestamp(raw: string | undefined): number {
   if (!raw) return NaN;
+  const dayFirst =
+    /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(raw);
+  if (dayFirst) {
+    const [, d, m, y, hh = "0", mm = "0", ss = "0"] = dayFirst;
+    const day = Number(d);
+    const month = Number(m);
+    if (month < 1 || month > 12 || day < 1 || day > 31) return NaN;
+    const year = y.length === 2 ? 2000 + Number(y) : Number(y);
+    const ts = Date.UTC(year, month - 1, day, Number(hh), Number(mm), Number(ss));
+    // Reject dates that rolled over (e.g. 31/02) instead of silently shifting.
+    return new Date(ts).getUTCDate() === day ? ts : NaN;
+  }
   const isoNoZone = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?)$/.exec(raw);
   if (isoNoZone) return Date.parse(`${isoNoZone[1]}T${isoNoZone[2]}Z`);
   return Date.parse(raw);
@@ -104,7 +123,7 @@ function requireParsedRows<R extends { ts: number }>(
       `No parseable rows in ${url}. Check the "${timeColumn}" and "${valueColumn}" columns ` +
         `(first row has ${timeColumn}="${sample[timeColumn] ?? "<missing>"}", ` +
         `${valueColumn}="${sample[valueColumn] ?? "<missing>"}"). ` +
-        `Timestamps must be ISO 8601, e.g. 2026-07-26T14:00:00Z.`
+        `Supported timestamps: ISO 8601 (2026-07-26T14:00:00Z) or day-first DD/MM/YY HH:MM (27/07/26 23:00).`
     );
   }
   if (valid.length < rows.length) {

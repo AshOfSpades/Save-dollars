@@ -72,7 +72,9 @@ Time_Stamp, Environment, Service_Name, identified_transaction, Successful_Transa
 
 `Service_Name` must match `application_service` values in the cost export
 (and `Environment` values must match too) — that's the join key for unit
-economics. Three metrics are supported in widget queries: `sum(Cost)`,
+economics. Timestamps may be ISO 8601 (`2026-07-26T14:00:00Z`), zone-less
+ISO (`2026-07-26 14:00:00`), or day-first `DD/MM/YY HH:MM` (`27/07/26 23:00`
+— always read day-first, never US month-first); all are treated as UTC. Three metrics are supported in widget queries: `sum(Cost)`,
 `sum(Successful_Transactions)`, and `costPerTransaction`
 (spend ÷ successful transactions, joined per service/environment/day).
 To use your own files, replace them under `public/data/` and reload the page.
