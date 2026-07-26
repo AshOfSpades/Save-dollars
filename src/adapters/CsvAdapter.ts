@@ -31,7 +31,9 @@ export class CsvAdapter implements DataSourceAdapter {
 
   private load(): Promise<CostRow[]> {
     this.loadPromise ??= (async () => {
-      const res = await fetch(this.url);
+      // Revalidate with the server instead of trusting the browser cache, so
+      // a replaced costs.csv shows up on the next page reload.
+      const res = await fetch(this.url, { cache: "no-cache" });
       if (!res.ok) throw new Error(`Failed to load ${this.url}: HTTP ${res.status}`);
       const text = await res.text();
       const parsed = Papa.parse<RawCsvRow>(text, { header: true, skipEmptyLines: true });
