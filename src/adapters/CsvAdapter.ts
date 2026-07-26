@@ -51,11 +51,69 @@ async function fetchCsv(url: string): Promise<RawCsvRow[]> {
   const res = await fetch(url, { cache: "no-cache" });
   if (!res.ok) throw new Error(`Failed to load ${url}: HTTP ${res.status}`);
   const text = await res.text();
-  const parsed = Papa.parse<RawCsvRow>(text, { header: true, skipEmptyLines: true });
+  const parsed = Papa.parse<RawCsvRow>(text, {
+    header: true,
+    skipEmptyLines: true,
+    // Real-world exports come with BOMs and padded headers/cells; normalize
+    // them so column lookups don't silently return undefined.
+    transformHeader: (h) => h.replace(/^\uFEFF/, "").trim(),
+    transform: (v) => v.trim(),
+  });
   if (parsed.errors.length > 0) {
     throw new Error(`CSV parse error in ${url}: ${parsed.errors[0].message}`);
   }
   return parsed.data;
+}
+
+/**
+ * Parse a timestamp cell. Zone-less ISO-ish values ("2026-07-26 14:00:00")
+ * are treated as UTC so day bucketing doesn't depend on the viewer's
+ * browser timezone. Returns NaN for unparseable input.
+ */
+function parseTimestamp(raw: string | undefined): number {
+  if (!raw) return NaN;
+  const isoNoZone = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?)$/.exec(raw);
+  if (isoNoZone) return Date.parse(`${isoNoZone[1]}T${isoNoZone[2]}Z`);
+  return Date.parse(raw);
+}
+
+/** Parse a numeric cell, tolerating "$1,234.56"-style formatting. */
+function parseAmount(raw: string | undefined): number {
+  if (raw === undefined || raw === "") return NaN;
+  return Number(raw.replace(/[$,]/g, ""));
+}
+
+/**
+ * Drop rows whose timestamp/value failed to parse (warning to the console),
+ * and fail loudly with an actionable message — instead of letting daily
+ * widgets crash later with "RangeError: Invalid time value" — when nothing
+ * in the file parses (wrong date format or column headers).
+ */
+function requireParsedRows<R extends { ts: number }>(
+  rows: R[],
+  getValue: (row: R) => number,
+  url: string,
+  rawRows: RawCsvRow[],
+  timeColumn: string,
+  valueColumn: string
+): R[] {
+  const valid = rows.filter((r) => Number.isFinite(r.ts) && Number.isFinite(getValue(r)));
+  if (valid.length === 0 && rows.length > 0) {
+    const sample = rawRows[0] ?? {};
+    throw new Error(
+      `No parseable rows in ${url}. Check the "${timeColumn}" and "${valueColumn}" columns ` +
+        `(first row has ${timeColumn}="${sample[timeColumn] ?? "<missing>"}", ` +
+        `${valueColumn}="${sample[valueColumn] ?? "<missing>"}"). ` +
+        `Timestamps must be ISO 8601, e.g. 2026-07-26T14:00:00Z.`
+    );
+  }
+  if (valid.length < rows.length) {
+    console.warn(
+      `[CsvAdapter] Dropped ${rows.length - valid.length} of ${rows.length} rows in ${url} ` +
+        `with unparseable "${timeColumn}" or "${valueColumn}" values.`
+    );
+  }
+  return valid;
 }
 
 export class CsvAdapter implements DataSourceAdapter {
@@ -70,42 +128,49 @@ export class CsvAdapter implements DataSourceAdapter {
   }
 
   private loadCosts(): Promise<CostRow[]> {
-    this.costsPromise ??= fetchCsv(this.costsUrl).then((raw) =>
-      raw.map((r) => ({
+    this.costsPromise ??= fetchCsv(this.costsUrl).then((raw) => {
+      const rows = raw.map((r) => ({
         Provider: r.Provider,
         service_name: r.service_name,
         application_service: r.application_service,
         Environment: r.Environment,
         Team: r.Team,
         Account_ID: r.Account_ID,
-        cost: Number(r.Cost),
-        ts: Date.parse(r.Date),
-      }))
-    );
+        cost: parseAmount(r.Cost),
+        ts: parseTimestamp(r.Date),
+      }));
+      return requireParsedRows(rows, (r) => r.cost, this.costsUrl, raw, "Date", "Cost");
+    });
     return this.costsPromise;
   }
 
   private loadTransactions(): Promise<TransactionRow[]> {
     this.transactionsPromise ??= (async () => {
-      if (!this.businessMetricsUrl) {
+      const url = this.businessMetricsUrl;
+      if (!url) {
         throw new Error("No business metrics CSV configured for this adapter");
       }
-      const [raw, costRows] = await Promise.all([
-        fetchCsv(this.businessMetricsUrl),
-        this.loadCosts(),
-      ]);
+      const [raw, costRows] = await Promise.all([fetchCsv(url), this.loadCosts()]);
       // Team ownership lives only in the cost export; carry it over so Team
       // drill-downs and groupings work on transaction metrics too.
       const teamByService = new Map(costRows.map((r) => [r.application_service, r.Team]));
-      return raw.map((r) => ({
+      const rows = raw.map((r) => ({
         application_service: r.Service_Name,
         Environment: r.Environment,
         Team: teamByService.get(r.Service_Name) ?? "",
         identified_transaction: r.identified_transaction,
-        transactions: Number(r.Successful_Transactions),
+        transactions: parseAmount(r.Successful_Transactions),
         // Header seen both as Time_Stamp and Timestamp in the wild.
-        ts: Date.parse(r.Time_Stamp ?? r.Timestamp),
+        ts: parseTimestamp(r.Time_Stamp ?? r.Timestamp),
       }));
+      return requireParsedRows(
+        rows,
+        (r) => r.transactions,
+        url,
+        raw,
+        "Time_Stamp",
+        "Successful_Transactions"
+      );
     })();
     return this.transactionsPromise;
   }
