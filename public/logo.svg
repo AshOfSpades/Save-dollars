@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" role="img" aria-label="Company logo placeholder">
+  <!-- Placeholder mark: replace this file (public/logo.svg) with your company logo. -->
+  <rect width="48" height="48" rx="10" fill="#364153"/>
+  <circle cx="24" cy="19" r="7" fill="none" stroke="#94a3b8" stroke-width="2.5"/>
+  <path d="M11 38c2.5-6.5 7.5-9.5 13-9.5S34.5 31.5 37 38" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="24" y="45" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="7" fill="#cbd5e1" letter-spacing="1.5">LOGO</text>
+</svg>

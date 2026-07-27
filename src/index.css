@@ -1,0 +1,34 @@
+@import "tailwindcss";
+@import "react-grid-layout/css/styles.css";
+
+/*
+ * Design tokens — the single source of truth for the app palette.
+ *
+ * Tailwind v4 exposes each token both as a utility (e.g. `text-ink`,
+ * `bg-primary`) and as a CSS custom property on :root (e.g.
+ * `--color-primary`). Chart components read the custom properties at
+ * runtime (see src/theme/colors.ts) so no hex value is ever hardcoded
+ * in a component.
+ */
+@theme {
+  /* Primary text on the dark gray theme (was slate-900 on the light theme). */
+  --color-ink: #ffffff;
+  /* teal-700 — primary buttons, active states, primary chart series, links */
+  --color-primary: #0f766e;
+  /* sky-400 — secondary chart series, highlights */
+  --color-secondary: #38bdf8;
+  /* green-600 — under-budget states, positive trends */
+  --color-success: #16a34a;
+  /* red-600 — over-budget states, negative trends */
+  --color-danger: #dc2626;
+}
+
+/* Dark gray theme: gray-900 page, gray-800 cards/header, gray-700 borders. */
+body {
+  @apply bg-gray-900 text-ink antialiased;
+}
+
+/* react-grid-layout placeholder shown while dragging a widget */
+.react-grid-placeholder {
+  @apply rounded-xl bg-primary/20;
+}
