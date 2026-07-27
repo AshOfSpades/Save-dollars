@@ -6,7 +6,7 @@ import { useDistinctValues } from "../hooks/useDistinctValues";
 import { TechnicalToggle } from "./TechnicalToggle";
 
 const selectClass =
-  "rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-ink shadow-xs " +
+  "rounded-lg border border-gray-600 bg-gray-800 px-2.5 py-1.5 text-sm text-ink shadow-xs " +
   "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
 
 /**
@@ -41,7 +41,7 @@ function DateRangeSelect({
   const { variables, setVariable } = useDashboard();
   return (
     <label className="flex items-center gap-2 text-sm">
-      <span className="text-slate-500">{variable.label}</span>
+      <span className="text-slate-400">{variable.label}</span>
       <select
         className={selectClass}
         value={variables[variable.name]}
@@ -67,7 +67,7 @@ function DimensionSelect({
   const options = useDistinctValues(variable.field);
   return (
     <label className="flex items-center gap-2 text-sm">
-      <span className="text-slate-500">{variable.label}</span>
+      <span className="text-slate-400">{variable.label}</span>
       <select
         className={selectClass}
         value={variables[variable.name]}

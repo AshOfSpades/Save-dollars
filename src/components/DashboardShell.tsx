@@ -28,11 +28,19 @@ export function DashboardShell() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-gray-700 bg-gray-800">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight text-ink">{config.title}</h1>
-            {config.subtitle && <p className="text-xs text-slate-500">{config.subtitle}</p>}
+          <div className="flex items-center gap-3">
+            {/* Company logo placeholder — replace public/logo.svg with your own logo file. */}
+            <img
+              src={`${import.meta.env.BASE_URL}logo.svg`}
+              alt="Company logo"
+              className="h-9 w-9 rounded-lg"
+            />
+            <div>
+              <h1 className="text-lg font-semibold tracking-tight text-ink">{config.title}</h1>
+              {config.subtitle && <p className="text-xs text-slate-400">{config.subtitle}</p>}
+            </div>
           </div>
           <span className="rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary">
             Prototype · local CSV data

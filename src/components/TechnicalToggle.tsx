@@ -16,12 +16,12 @@ export function TechnicalToggle() {
       onClick={() => setTechnicalDetail(!technicalDetail)}
       className="group flex items-center gap-2.5 text-sm"
     >
-      <span className={technicalDetail ? "font-medium text-primary" : "text-slate-500"}>
+      <span className={technicalDetail ? "font-medium text-primary" : "text-slate-400"}>
         Technical detail
       </span>
       <span
         className={`flex h-5 w-9 items-center rounded-full px-0.5 transition-colors ${
-          technicalDetail ? "bg-primary" : "bg-slate-300 group-hover:bg-slate-400"
+          technicalDetail ? "bg-primary" : "bg-gray-600 group-hover:bg-gray-500"
         }`}
       >
         <span

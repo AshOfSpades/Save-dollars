@@ -39,7 +39,7 @@ export function Breadcrumb() {
               <button
                 type="button"
                 onClick={() => jumpToCrumb(i)}
-                className="rounded-md px-2 py-0.5 text-slate-600 hover:bg-slate-100 hover:text-primary"
+                className="rounded-md px-2 py-0.5 text-slate-300 hover:bg-gray-700 hover:text-secondary"
               >
                 {crumb.label}
               </button>

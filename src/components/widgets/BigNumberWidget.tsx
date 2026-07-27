@@ -47,20 +47,20 @@ export function BigNumberWidget({
       </div>
 
       {typeof transactionName === "string" && (
-        <p className="-mt-1 text-xs text-slate-500">
+        <p className="-mt-1 text-xs text-slate-400">
           {format === "unitCurrency" ? `per "${transactionName}"` : `"${transactionName}"`}
         </p>
       )}
 
       {budget != null && budgetUsed !== null && (
         <div className="space-y-1.5">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-700">
             <div
               className={`h-full rounded-full ${overBudget ? "bg-danger" : "bg-success"}`}
               style={{ width: `${Math.min(budgetUsed * 100, 100)}%` }}
             />
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             <span className={`font-medium ${overBudget ? "text-danger" : "text-success"}`}>
               {Math.round(budgetUsed * 100)}%
             </span>{" "}

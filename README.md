@@ -18,6 +18,9 @@ A generated CSV is committed so the app works out of the box, but its date
 window is fixed at generation time — re-run `npm run generate:data` if the
 dashboard looks empty because the data has gone stale.
 
+To use your company logo, replace `public/logo.svg` with your own file (any
+square-ish image works; it renders at 36×36 in the header next to the title).
+
 ## Architecture
 
 ```

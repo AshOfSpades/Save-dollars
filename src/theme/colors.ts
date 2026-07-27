@@ -8,17 +8,18 @@
  */
 
 const FALLBACKS: Record<string, string> = {
-  ink: "#0f172a",
+  ink: "#ffffff",
   primary: "#0f766e",
   secondary: "#38bdf8",
   success: "#16a34a",
   danger: "#dc2626",
 };
 
-/** Neutral chart chrome (axis text, grid lines) — Tailwind slate values. */
+/** Neutral chart chrome for the dark gray theme — Tailwind slate/gray values. */
 const NEUTRALS = {
-  axisText: "#64748b", // slate-500
-  gridLine: "#e2e8f0", // slate-200
+  axisText: "#94a3b8", // slate-400
+  gridLine: "#334155", // slate-700
+  tooltipBg: "#1e2939", // gray-800, matches card background
 };
 
 export function themeColor(name: keyof typeof FALLBACKS): string {

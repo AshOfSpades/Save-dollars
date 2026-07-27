@@ -13,8 +13,8 @@ export function TableWidget({ data, options }: { data: DataResult; options?: Wid
   return (
     <div className="h-full overflow-auto">
       <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-white">
-          <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+        <thead className="sticky top-0 bg-gray-800">
+          <tr className="border-b border-gray-700 text-left text-xs uppercase tracking-wide text-slate-400">
             {data.columns.map((col) => (
               <th
                 key={col.name}
@@ -27,14 +27,14 @@ export function TableWidget({ data, options }: { data: DataResult; options?: Wid
         </thead>
         <tbody>
           {data.rows.map((row, i) => (
-            <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+            <tr key={i} className="border-b border-gray-700/60 last:border-0 hover:bg-gray-700/50">
               {data.columns.map((col) => (
                 <td
                   key={col.name}
                   className={`py-1.5 pr-3 ${
                     col.type === "number"
                       ? "text-right font-medium tabular-nums text-ink"
-                      : "text-slate-600"
+                      : "text-slate-300"
                   }`}
                 >
                   {col.type === "number"

@@ -63,9 +63,11 @@ export function LineChartWidget({
           formatter={(v) => [formatValue(Number(v), format), valueLabel]}
           contentStyle={{
             borderRadius: 8,
+            backgroundColor: chartChrome.tooltipBg,
             borderColor: chartChrome.gridLine,
             fontSize: 12,
           }}
+          labelStyle={{ color: themeColor("ink") }}
         />
         <Area
           type="monotone"
